@@ -136,7 +136,6 @@ const startSubscription = (chatId, city, hours, minutes, sign) => {
 bot.on('message', (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
-  console.log(schedule.scheduledJobs[`subscription-${chatId}`], 'subscription')
 
   switch (text) {
     case '/start':
