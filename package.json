@@ -4,6 +4,9 @@
   "description": "just another telegram bot",
   "main": "index.js",
   "type": "module",
+  "engines": {
+     "node": "16.4.1"
+  },
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js"
