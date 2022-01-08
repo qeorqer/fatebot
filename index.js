@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
 import TelegramBot from 'node-telegram-bot-api';
 import schedule from 'node-schedule';
-import express from 'express';
 import { fetcher } from './utils.js';
 import { inline_keyboard, signs_keyboard } from './keyboards.js';
 
@@ -13,9 +12,7 @@ const bot = new TelegramBot(process.env.TOKEN, {
     port: process.env.PORT
   }
 });
-const app = express();
 
-app.use(express.json())
 bot.setWebHook(`${process.env.URL}/bot${process.env.TOKEN}`)
 
 let city;
@@ -108,6 +105,7 @@ const handleUnsubscribe = (chatId) => {
 }
 
 const startSubscription = (chatId, city, hours, minutes, sign) => {
+  console.log(chatId, city, hours, minutes, sign, 'chatId, city, hours, minutes, sign')
   if (!city || !hours || !minutes || !sign) {
     return bot.sendMessage(chatId, 'Введи все и по порядку потому что так работать я не хочу и не буду', { reply_markup: { inline_keyboard } })
   }
@@ -136,51 +134,40 @@ const startSubscription = (chatId, city, hours, minutes, sign) => {
   bot.sendMessage(chatId, 'Отлично, теперь ты мой пипищик');
 }
 
-app.post(`/bot${process.env.TOKEN}`, (req, res) => {
-  const { body } = req;
-  bot.processUpdate(body);
-  res.json({ message: 'success' })
+bot.on('message', (msg) => {
+  const chatId = msg.chat.id;
+  const text = msg.text;
+  console.log(schedule.scheduledJobs[`subscription-${chatId}`], 'subscription')
+
+  switch (text) {
+    case '/start':
+      return handleStart(chatId);
+    case '/weather':
+      return handleWeather(chatId);
+    case '/subscribe':
+      return handleSubscribe(chatId);
+    case '/unsubscribe':
+      return handleUnsubscribe(chatId);
+  }
+
+  if (Boolean(!msg.reply_to_message && (msg.entities && msg.entities[0].type !== 'bot_command'))) {
+    bot.sendMessage(chatId, 'Да ну ты серьезно? Нажми на кнопку, получишь результат. По другому не работаем', { reply_markup: { inline_keyboard } })
+  }
 })
 
-const start = () => {
-  //app.listen(port, () => console.log(`The bot is running on ${port} port`))
+bot.on('callback_query', msg => {
+  const data = msg.data;
+  const chatId = msg.message.chat.id;
 
-  bot.on('message', (msg) => {
-    const chatId = msg.chat.id;
-    const text = msg.text;
-
-    switch (text) {
-      case '/start':
-        return handleStart(chatId);
-      case '/weather':
-        return handleWeather(chatId);
-      case '/subscribe':
-        return handleSubscribe(chatId);
-      case '/unsubscribe':
-        return handleUnsubscribe(chatId);
-    }
-
-    if (Boolean(!msg.reply_to_message && (msg.entities && msg.entities[0].type !== 'bot_command'))) {
-      bot.sendMessage(chatId, 'Да ну ты серьезно? Нажми на кнопку, получишь результат. По другому не работаем', { reply_markup: { inline_keyboard } })
-    }
-  })
-
-  bot.on('callback_query', msg => {
-    const data = msg.data;
-    const chatId = msg.message.chat.id;
-
-    switch (data) {
-      case '/weather':
-        return handleWeather(chatId);
-      case '/subscribe':
-        return handleSubscribe(chatId);
-      case '/unsubscribe':
-        return handleUnsubscribe(chatId);
-      default:
-        sign = data;
-        return startSubscription(chatId, city, hours, minutes, sign)
-    }
-  })
-}
-
-start();
+  switch (data) {
+    case '/weather':
+      return handleWeather(chatId);
+    case '/subscribe':
+      return handleSubscribe(chatId);
+    case '/unsubscribe':
+      return handleUnsubscribe(chatId);
+    default:
+      sign = data;
+      return startSubscription(chatId, city, hours, minutes, sign)
+  }
+})
