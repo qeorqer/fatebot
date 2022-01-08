@@ -136,7 +136,7 @@ const startSubscription = (chatId, city, hours, minutes, sign) => {
   bot.sendMessage(chatId, 'Отлично, теперь ты мой пипищик');
 }
 
-app.post('/bot', (req, res) => {
+app.post(`/bot${process.env.TOKEN}`, (req, res) => {
   const {body} = req;
   bot.processUpdate(body);
   res.json({message: 'success'})
