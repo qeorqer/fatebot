@@ -149,8 +149,7 @@ bot.on('message', (msg) => {
       return handleUnsubscribe(chatId);
   }
 
-  console.log(Boolean(!msg.reply_to_message && (msg.entities && msg.entities[0].type !== 'bot_command')))
-  if (Boolean(!msg.reply_to_message && (msg.entities && msg.entities[0].type !== 'bot_command'))) {
+  if (Boolean(!msg.reply_to_message && !(msg.entities && msg.entities[0].type === 'bot_command'))) {
     bot.sendMessage(chatId, 'Да ну ты серьезно? Нажми на кнопку, получишь результат. По другому не работаем', { reply_markup: { inline_keyboard } })
   }
 })
