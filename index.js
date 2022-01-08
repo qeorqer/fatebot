@@ -143,7 +143,7 @@ app.post(`/bot${process.env.TOKEN}`, (req, res) => {
 })
 
 const start = () => {
-  app.listen(port, () => console.log(`The bot is running on ${port} port`))
+  //app.listen(port, () => console.log(`The bot is running on ${port} port`))
 
   bot.on('message', (msg) => {
     const chatId = msg.chat.id;
