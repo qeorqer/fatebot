@@ -111,6 +111,7 @@ const startSubscription = (chatId, city, hours, minutes, sign) => {
   }
 
   schedule.scheduleJob(`subscription-${chatId}`, `${minutes} ${hours} * * *`, async () => {
+    console.log(12333)
     const weatherInfo = await fetcher(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${process.env.WEATHER_API_KEY}&units=metric&lang=ru`);
 
     if (weatherInfo.cod === '404') {
