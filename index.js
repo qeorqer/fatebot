@@ -137,47 +137,50 @@ const startSubscription = (chatId, city, hours, minutes, sign) => {
 }
 
 app.post(`/bot${process.env.TOKEN}`, (req, res) => {
-  const {body} = req;
+  const { body } = req;
   bot.processUpdate(body);
-  res.json({message: 'success'})
+  res.json({ message: 'success' })
 })
 
-app.listen(port, () => console.log(`The bot is running on ${port} port`))
+const start = () => {
+  app.listen(port, () => console.log(`The bot is running on ${port} port`))
 
-bot.on('message', (msg) => {
-  const chatId = msg.chat.id;
-  const text = msg.text;
+  bot.on('message', (msg) => {
+    const chatId = msg.chat.id;
+    const text = msg.text;
 
-  switch (text) {
-    case '/start':
-      return handleStart(chatId);
-    case '/weather':
-      return handleWeather(chatId);
-    case '/subscribe':
-      return handleSubscribe(chatId);
-    case '/unsubscribe':
-      return handleUnsubscribe(chatId);
-  }
+    switch (text) {
+      case '/start':
+        return handleStart(chatId);
+      case '/weather':
+        return handleWeather(chatId);
+      case '/subscribe':
+        return handleSubscribe(chatId);
+      case '/unsubscribe':
+        return handleUnsubscribe(chatId);
+    }
 
-  if (Boolean(!msg.reply_to_message && (msg.entities && msg.entities[0].type !== 'bot_command'))) {
-    bot.sendMessage(chatId, 'Да ну ты серьезно? Нажми на кнопку, получишь результат. По другому не работаем', { reply_markup: { inline_keyboard } })
-  }
-})
+    if (Boolean(!msg.reply_to_message && (msg.entities && msg.entities[0].type !== 'bot_command'))) {
+      bot.sendMessage(chatId, 'Да ну ты серьезно? Нажми на кнопку, получишь результат. По другому не работаем', { reply_markup: { inline_keyboard } })
+    }
+  })
 
-bot.on('callback_query', msg => {
-  const data = msg.data;
-  const chatId = msg.message.chat.id;
+  bot.on('callback_query', msg => {
+    const data = msg.data;
+    const chatId = msg.message.chat.id;
 
-  switch (data) {
-    case '/weather':
-      return handleWeather(chatId);
-    case '/subscribe':
-      return handleSubscribe(chatId);
-    case '/unsubscribe':
-      return handleUnsubscribe(chatId);
-    default:
-      sign = data;
-      return startSubscription(chatId, city, hours, minutes, sign)
-  }
-})
+    switch (data) {
+      case '/weather':
+        return handleWeather(chatId);
+      case '/subscribe':
+        return handleSubscribe(chatId);
+      case '/unsubscribe':
+        return handleUnsubscribe(chatId);
+      default:
+        sign = data;
+        return startSubscription(chatId, city, hours, minutes, sign)
+    }
+  })
+}
 
+start();
