@@ -1,0 +1,22 @@
+{
+  "name": "fate-bot",
+  "version": "1.0.0",
+  "description": "just another telegram bot",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "author": "George Pustovit <gorapus@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^10.0.0",
+    "node-fetch": "^3.1.0",
+    "node-schedule": "^2.1.0",
+    "node-telegram-bot-api": "^0.56.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  }
+}
