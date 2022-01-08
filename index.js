@@ -105,13 +105,11 @@ const handleUnsubscribe = (chatId) => {
 }
 
 const startSubscription = (chatId, city, hours, minutes, sign) => {
-  console.log(chatId, city, hours, minutes, sign, 'chatId, city, hours, minutes, sign')
   if (!city || !hours || !minutes || !sign) {
     return bot.sendMessage(chatId, 'Введи все и по порядку потому что так работать я не хочу и не буду', { reply_markup: { inline_keyboard } })
   }
 
   schedule.scheduleJob(`subscription-${chatId}`, `${minutes} ${hours} * * *`, async () => {
-    console.log(12333)
     const weatherInfo = await fetcher(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${process.env.WEATHER_API_KEY}&units=metric&lang=ru`);
 
     if (weatherInfo.cod === '404') {
@@ -151,6 +149,7 @@ bot.on('message', (msg) => {
       return handleUnsubscribe(chatId);
   }
 
+  console.log(Boolean(!msg.reply_to_message && (msg.entities && msg.entities[0].type !== 'bot_command')))
   if (Boolean(!msg.reply_to_message && (msg.entities && msg.entities[0].type !== 'bot_command'))) {
     bot.sendMessage(chatId, 'Да ну ты серьезно? Нажми на кнопку, получишь результат. По другому не работаем', { reply_markup: { inline_keyboard } })
   }
