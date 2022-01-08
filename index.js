@@ -1,58 +1,35 @@
 import dotenv from 'dotenv';
 import TelegramBot from 'node-telegram-bot-api';
-import schedule from "node-schedule";
-import { fetcher } from "./utils.js";
+import schedule from 'node-schedule';
+import express from 'express';
+import { fetcher } from './utils.js';
+import { inline_keyboard, signs_keyboard } from './keyboards.js';
 
 dotenv.config();
 
-export const bot = new TelegramBot(process.env.TOKEN, { polling: true });
+const port = process.env.PORT || 3333;
+const bot = new TelegramBot(process.env.TOKEN, {
+  webHook: {
+    port: process.env.PORT
+  }
+});
+const app = express();
+
+app.use(express.json())
+bot.setWebHook(`${process.env.URL}/bot${process.env.TOKEN}`)
 
 let city;
 let hours;
 let minutes;
 let sign;
 
-const inline_keyboard = [
-  [
-    { text: 'Узнать погоду', callback_data: '/weather' },
-  ],
-  [
-    { text: 'Оформить подписку', callback_data: '/subscribe' },
-    { text: 'Отменить подписку', callback_data: '/unsubscribe' }
-  ]
-
-]
-
-const signs_keyboard = [
-  [
-    { text: '♑ Козерог', callback_data: 'Capricorn' },
-    { text: '♉ Телец', callback_data: 'Taurus' },
-    { text: '♊ Близнецы', callback_data: 'Gemini' },
-  ],
-  [
-    { text: '♋ Рак', callback_data: 'Cancer' },
-    { text: '♌ Лев', callback_data: 'Leo' },
-    { text: '♍ Дева', callback_data: 'Virgo' },
-  ],
-  [
-    { text: '♎ Весы', callback_data: 'Libra' },
-    { text: '♏ Скорпион', callback_data: 'Scorpio' },
-    { text: '♈ Овен', callback_data: 'Aries' },
-  ],
-  [
-    { text: '♐ Стрелец', callback_data: 'Sagittarius' },
-    { text: '♒ Водолей', callback_data: 'Aquarius' },
-    { text: '♓ Рыбы', callback_data: 'Pisces' },
-  ]
-]
-
-export const handleStart = (chatId) => {
+const handleStart = (chatId) => {
   bot.sendMessage(chatId, `Доброй ночи(у меня сейчас ночь, что там у тебя я без понятия, но в целом мне и все равно, я же бот).
 Моя миссия в том, чтобы дать тебе информацию о погоде и даже немного больше.
 А теперь выбирай🤠`, { reply_markup: { inline_keyboard } });
 }
 
-export const handleWeather = async (chatId) => {
+const handleWeather = async (chatId) => {
   const msgInfo = await bot.sendMessage(chatId, 'Напиши город, в котором нужно узнать погоду',
     {
       reply_markup: {
@@ -76,8 +53,7 @@ export const handleWeather = async (chatId) => {
   })
 }
 
-export const handleSubscribe = async (chatId) => {
-
+const handleSubscribe = async (chatId) => {
   const msgCityInfo = await bot.sendMessage(chatId, 'И так, погнали впишем тебя. Напиши город, в котором тебе нужно регулярно получать погоду',
     {
       reply_markup: {
@@ -121,6 +97,16 @@ export const handleSubscribe = async (chatId) => {
   })
 }
 
+const handleUnsubscribe = (chatId) => {
+  const subscription = schedule.scheduledJobs[`subscription-${chatId}`];
+  if (subscription) {
+    subscription.cancel();
+    bot.sendMessage(chatId, 'Подписка отменена');
+  } else {
+    bot.sendMessage(chatId, 'И так не подписан');
+  }
+}
+
 const startSubscription = (chatId, city, hours, minutes, sign) => {
   if (!city || !hours || !minutes || !sign) {
     return bot.sendMessage(chatId, 'Введи все и по порядку потому что так работать я не хочу и не буду', { reply_markup: { inline_keyboard } })
@@ -150,52 +136,48 @@ const startSubscription = (chatId, city, hours, minutes, sign) => {
   bot.sendMessage(chatId, 'Отлично, теперь ты мой пипищик');
 }
 
-export const handleUnsubscribe = (chatId) => {
-  const subscription = schedule.scheduledJobs[`subscription-${chatId}`];
-  if (subscription) {
-    subscription.cancel();
-    bot.sendMessage(chatId, 'Подписка отменена');
-  } else {
-    bot.sendMessage(chatId, 'И так не подписан');
+app.post('/bot', (req, res) => {
+  const {body} = req;
+  bot.processUpdate(body);
+  res.json({message: 'success'})
+})
+
+app.listen(port, () => console.log(`The bot is running on ${port} port`))
+
+bot.on('message', (msg) => {
+  const chatId = msg.chat.id;
+  const text = msg.text;
+
+  switch (text) {
+    case '/start':
+      return handleStart(chatId);
+    case '/weather':
+      return handleWeather(chatId);
+    case '/subscribe':
+      return handleSubscribe(chatId);
+    case '/unsubscribe':
+      return handleUnsubscribe(chatId);
   }
-}
-const start = () => {
-  bot.on('message', (msg) => {
-    const chatId = msg.chat.id;
-    const text = msg.text;
 
-    switch (text) {
-      case '/start':
-        return handleStart(chatId);
-      case '/weather':
-        return handleWeather(chatId);
-      case '/subscribe':
-        return handleSubscribe(chatId);
-      case '/unsubscribe':
-        return handleUnsubscribe(chatId);
-    }
+  if (Boolean(!msg.reply_to_message && (msg.entities && msg.entities[0].type !== 'bot_command'))) {
+    bot.sendMessage(chatId, 'Да ну ты серьезно? Нажми на кнопку, получишь результат. По другому не работаем', { reply_markup: { inline_keyboard } })
+  }
+})
 
-     if (Boolean(!msg.reply_to_message && (msg.entities && msg.entities[0].type !== 'bot_command'))) {
-       bot.sendMessage(chatId, 'Да ну ты серьезно? Нажми на кнопку, получишь результат. По другому не работаем', { reply_markup: { inline_keyboard } })
-     }
-  })
+bot.on('callback_query', msg => {
+  const data = msg.data;
+  const chatId = msg.message.chat.id;
 
-  bot.on('callback_query', msg => {
-    const data = msg.data;
-    const chatId = msg.message.chat.id;
+  switch (data) {
+    case '/weather':
+      return handleWeather(chatId);
+    case '/subscribe':
+      return handleSubscribe(chatId);
+    case '/unsubscribe':
+      return handleUnsubscribe(chatId);
+    default:
+      sign = data;
+      return startSubscription(chatId, city, hours, minutes, sign)
+  }
+})
 
-    switch (data) {
-      case '/weather':
-        return handleWeather(chatId);
-      case '/subscribe':
-        return handleSubscribe(chatId);
-      case '/unsubscribe':
-        return handleUnsubscribe(chatId);
-      default:
-        sign = data;
-        return startSubscription(chatId, city, hours, minutes, sign)
-    }
-  })
-}
-
-start();
